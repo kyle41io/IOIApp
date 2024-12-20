@@ -10,7 +10,7 @@ const createAllDataModel = async (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    den3Id: {
+    den3: {
       type: DataTypes.INTEGER,
       allowNull: false
     },
