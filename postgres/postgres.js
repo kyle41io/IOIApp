@@ -1,10 +1,12 @@
 import { Sequelize } from 'sequelize';
 import { createDen3Model } from '../model/allDataSchema.js';
 import { createAllDataModel } from '../model/allDataSchema.js';
+import pg from "pg"
 
 const sequelize = new Sequelize('postgres', 'lysa', '1234', {
   host: 'localhost',
-  dialect: 'postgres' 
+  dialect: 'postgres',
+  dialectModule: pg
 });
 
 let AllDataModel = null;
