@@ -1,97 +1,58 @@
-import { AllDataModel } from "../postgres/postgres.js";
-import { Den3Model } from "../postgres/postgres.js";
+import { DataModel, Den3Model } from "../postgres/postgres.js";
 
-export const getAllData = async (req, res) => {
+export const getData = async (req, res) => {
   try {
-    const datas = await AllDataModel.findAll();
+    const datas = await DataModel.findAll({
+      include: {
+        model: Den3Model,
+        as: "den3", // Alias đã định nghĩa trong quan hệ
+      },
+    });
+
     if (datas.length === 0) {
-      return res.status(200).json({ "error": "No data found" });
+      return res.status(200).json({ error: "No data found" });
     }
-    return res.status(200).json(datas);
+
+    // Tùy chỉnh cấu trúc trả về
+    const formattedData = datas.map((data) => {
+      const { id, den1, den2, densan, nhietdo, doam, den3 } = data.toJSON();
+      return {
+        id,
+        den1,
+        den2,
+        densan,
+        nhietdo,
+        doam,
+        den3: den3 ? { trangthai: den3.trangthai, gio: den3.gio, phut: den3.phut } : null,
+      };
+    });
+
+    return res.status(200).json(formattedData);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ "error": "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-export const getAllDen3 = async (req, res) => {
-  try {
-    const datas = await Den3Model.findAll();
-    if (datas.length === 0) {
-      return res.status(200).json({ "error": "No data found" });
-    }
-    return res.status(200).json(datas);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ "error": "Internal server error" });
-  }
-};
 
 export const createData = async (req, res) => {
-  const {den1, den2, den3, densan, nhietdo, doam} = req.body;
-  try {
-    await AllDataModel.create(req.body);
-    return res.status(201).json({message:"Data created successfully"});
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ "error": "Internal server error" });
-  }
-};
+  const { den1, den2, den3, densan, nhietdo, doam } = req.body;
 
-export const createDen3 = async (req, res) => {
-  const {trangthai, gio, phut} = req.body;
   try {
-    await Den3Model.create(req.body);
-    return res.status(201).json({message:"Data created successfully"});
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ "error": "Internal server error" });
-  }
-};
+    // Tạo bản ghi trong bảng Data
+    const data = await DataModel.create({ den1, den2, densan, nhietdo, doam });
 
-export const getDataById = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const data = await AllDataModel.findByPk(id);
-    if (!data) {
-      return res.status(404).json({ "error": "Data not found" });
+    // Nếu `den3` tồn tại, tạo bản ghi trong bảng Den3
+    if (den3) {
+      await Den3Model.create({
+        ...den3, // { trangthai, gio, phut }
+        dataId: data.id, // Liên kết với Data
+      });
     }
-    return res.status(200).json(data);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ "error": "Internal server error" });
-  }
-};
 
-export const updateData = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [updated] = await AllDataModel.update(req.body, {
-      where: { id: id }
-    });
-    if (updated) {
-      const updatedData = await AllDataModel.findByPk(id);
-      return res.status(200).json(updatedData);
-    }
-    return res.status(404).json({ "error": "Data not found" });
+    return res.status(201).json({ message: "Data created successfully" });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ "error": "Internal server error" });
-  }
-};
-
-export const deleteData = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const deleted = await AllDataModel.destroy({
-      where: { id: id }
-    });
-    if (deleted) {
-      return res.status(204).send();
-    }
-    return res.status(404).json({ "error": "Data not found" });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ "error": "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
